@@ -1,0 +1,265 @@
+<html>
+	<head>
+		<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+		<script>
+			function calculatePostfix() { // removes any spaces from string 
+				var infix = document.getElementById("inputEq").value;
+				var tokens = [];
+				for (var i = 0; i < infix.length; i++){
+					if(infix[i] != " "){
+						tokens[tokens.length] = infix[i];
+					}
+				}
+				getPostfix(tokens);
+			}
+			var stackObj = {
+				content: [],
+				push: function(val){
+					stackObj.content[stackObj.content.length] = val;
+				},
+				pop: function() {
+					var top = stackObj.getTop();
+					if(top!=null){
+						stackObj.content = stackObj.content.splice(0,stackObj.content.length -1);
+					}
+					return top;
+				},
+				getTop: function(){
+					if(stackObj.content.length == 0){
+						return null;
+					}
+					return stackObj.content[stackObj.content.length-1];
+				},
+				initialize: function(initStack)
+				{
+					stackObj.content = initStack;
+				}
+			}
+			function updateVisualization(step, tokens, postfix, result) {
+				var output = "<div class='step'>"
+				output += "<h1>Step " + (step + 1) + "</h1>";
+				
+				//update Postfix
+				output += "<div>";
+				var postfix = tokens;
+				output += "<h3>Postfix:</h3>";
+				for (var i = 0; i < tokens.length; i++){
+					if( i == step ){
+						output += "<span class='smallBox'><b>" + tokens[i] + "</b></span>";
+					}
+					else{
+						output += "<span class='smallBox'>" + tokens[i] + "</span>";
+					}
+				}
+				output += "</div>";
+				
+				//update stack
+				tokens = stackObj.content;
+				output += "<div>";
+				output += "<h3>Stack:</h3>";
+				if(tokens.length > 0) {
+					for (var i = 0; i < tokens.length; i++){
+						output += "<span class='smallBox'>" + tokens[i] + "</span>";
+					}
+				} else {
+					output += "<span class='smallBox'>empty</span>";
+				}
+				output += "</div>";
+				
+				//show current result
+				output += "<div>";
+				output += "<h3>Step Total:</h3>";
+				output += "<span class='smallBox'>" + result + "</span>";
+				output += "</div>";
+								
+				output += "</div>";
+				document.getElementById("visual").innerHTML += output;
+			}
+			var operators = ["*", "/", "+", "-"];
+			function isOperator(t) {
+				if(operators.indexOf(t) >= 0){
+					return true;
+				}
+				return false;
+			}
+			function isPrecGreater(a, b) {
+				var priority_1 = 1; 
+				var priority_2 = 1;
+				if(a == "*" || a == "/") {
+					priority_1 = 2;
+				}
+				if(b == "*" || b == "/") {
+					priority_2 = 2;
+				}
+				console.log(priority_1, priority_2);
+				if(priority_1 >= priority_2) {
+					return true;
+				}
+				return false;
+			}
+			function getPostfix(tokens) {
+				var postFix = "";
+				stackObj.initialize([]);
+				document.getElementById("visual").innerHTML = "";
+				for (var i = 0; i < tokens.length; i++) {
+					var currScan = tokens[i];
+					console.log(currScan);
+					if(isOperator(currScan)) { // is operator
+						var top = stackObj.getTop();
+						if(top != null) {  // stack not empty
+							while(top && isPrecGreater(top, currScan)) { // when stack is not empty and the precedence of the current scan is higher than the top, pop the stack and push the current scan into the stack
+								postFix += stackObj.pop();
+								top = stackObj.getTop();
+							}
+							stackObj.push(currScan);
+						}
+						else {  //stack is empty
+							stackObj.push(currScan); // when stack is empty, push the current scanned operator into the stack
+						}
+					}
+					else { // is NOT an operator
+						postFix = postFix + currScan; // when the current scanned token is NOT an operator, just push into the postfix string
+					}
+				}
+				var top = stackObj.getTop();
+				if(top != null){  // stack is not empty
+					document.getElementById("visual").innerHTML += "<h1>Emptying stack...</h1>";
+					while(top){
+						postFix += stackObj.pop();
+						top = stackObj.getTop();
+					}
+				}
+				document.getElementById("visual").innerHTML += "<h1>Final Result: " + postFix + "</h1>";
+				evaluatePostfix(postFix);
+				return postFix;
+				
+			}
+			
+			function evaluatePostfix(postFix) {
+				var result = "";
+				var tokens = postFix;
+				stackObj.initialize([]);
+				document.getElementById("visual").innerHTML = "";
+				for (var i = 0; i < tokens.length; i++) {
+					var currScan = tokens[i];
+					console.log(currScan);
+					
+					if(isOperator(currScan)) { // is operator 
+						var top = stackObj.getTop();
+						if(top != null) {  // stack not empty
+							
+							var argument_2 = parseInt(stackObj.pop()),
+								argument_1 = parseInt(stackObj.pop()),
+								calculate = "";
+							
+							if(currScan == "*") { 
+								calculate = argument_1 *  argument_2;
+							} else if(currScan == "/") {
+								calculate = argument_1 /  argument_2;
+							} else if(currScan == "+") {
+								calculate = argument_1 +  argument_2;
+							} else if(currScan == "-") {
+								calculate = argument_1 -  argument_2;
+							}
+							
+							//console.log("Step " + i + ": " + calculate);
+							result = calculate;
+							stackObj.push(calculate);
+							
+						}
+						else {  //stack is empty
+							stackObj.push(currScan); // when stack is empty, push the current scanned operator into the stack
+							result = "0";
+						}
+					}
+					else {  // when operand, push into stack
+						stackObj.push(currScan); // when stack is empty, push the current scanned operand into the stack
+						result = "0";
+						console.log(stackObj.content);
+					}
+					
+					updateVisualization(i, tokens, null, result); // update visualization for the step
+				}
+				var top = stackObj.getTop();
+				if(top != null){  // stack is not empty
+					document.getElementById("visual").innerHTML += "<h1>Emptying stack...</h1>";
+					while(top){
+						result += stackObj.pop();
+						top = stackObj.getTop();
+					}
+				}
+				document.getElementById("result").innerHTML += "<div class='result'><h2>" + document.getElementById("inputEq").value + " = " + result; + "</h2></div>"
+				updateVisualization(i, tokens, null, result);
+				document.getElementById("visual").innerHTML += "<h1>Final Result: " + result + "</h1>";
+				return result;
+			}
+			
+			function clearResult() { // clears steps from visual and emptys input
+				document.getElementById("visual").innerHTML = "";
+				document.getElementById("inputEq").value = "";
+			}
+		</script>
+
+		<style>
+			body {
+				font-size: 16px;
+				font-family: 'Source Sans Pro';
+			}
+			
+			header { text-align: center; }
+			
+			header h1 { font-size: 250%; margin-bottom: 15px; }
+			
+			#visual > h1 { padding: 0px 10px; }
+			
+			.input, .result { 
+				background-color: #f2f2f2; 
+				padding: 20px; 
+				border: 10px solid #FFF;
+			}
+			 input#inputEq {
+				width: 300px;
+			}
+			
+			.step { 
+				background-color: #f2f2f2; 
+				padding: 20px;
+				width: 50%;
+				display: inline-block;
+				box-sizing: border-box;
+				height: 420px;
+				overflow: hidden;
+				border: 10px solid #FFF;
+			}
+			
+			.step h1 { margin: 5px 0px; }
+			
+			.smallBox b {
+				font-size: 150%;
+				color: lightseagreen; 
+			}
+			.smallBox {
+				background-color: #FFF; 
+				display: inline-block;
+				padding: 10px;
+				vertical-align: middle;
+			}
+			
+		</style>
+
+	</head>
+
+	<body>
+		<header>
+			<h1>Simple Calculator</h1>
+		</header>
+		<div class="input">
+			<input type="text" id='inputEq'> 
+			<input type="submit" value="Calculate" onclick="calculatePostfix()">
+			<input type="button" value="Clear" onclick="clearResult()">
+		</div>
+		<div id='result'></div>
+		<div id='visual'></div>
+	</body>
+
+</html>
